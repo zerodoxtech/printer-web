@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Zerodox Printer Web",
+  "version": "1.0",
+  "description": "Envia o PDF original da aba (intacto, com OCR) ou converte a página HTML em PDF pesquisável e envia para a pasta do Zerodox.",
+  "permissions": ["downloads", "webRequest", "storage", "tabs", "debugger", "contextMenus", "notifications", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Enviar para o Zerodox",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "options_page": "options.html",
+  "commands": {
+    "enviar-padrao": {
+      "suggested_key": { "default": "Ctrl+Shift+I" },
+      "description": "Zerodox: enviar esta aba (orientação padrão)"
+    },
+    "enviar-retrato": {
+      "suggested_key": { "default": "Ctrl+Shift+Y" },
+      "description": "Zerodox: enviar esta aba (Retrato)"
+    },
+    "enviar-paisagem": {
+      "suggested_key": { "default": "Ctrl+Shift+U" },
+      "description": "Zerodox: enviar esta aba (Paisagem)"
+    }
+  }
+}

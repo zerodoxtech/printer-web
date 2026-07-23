@@ -1,0 +1,16 @@
+Windows Registry Editor Version 5.00
+
+; Desliga a opcao "Perguntar onde salvar cada arquivo antes de baixar" do
+; Google Chrome via politica de administracao (nivel maquina, todos os
+; perfis). Depois disso a extensao Zerodox Printer Web (e qualquer outro
+; download) salva direto na pasta configurada, sem nenhum prompt.
+;
+; Como usar: clique com o botao direito neste arquivo > Mesclar (ou de duplo
+; clique) e confirme o UAC. Precisa de permissao de administrador. Depois
+; feche e abra o Chrome de novo.
+;
+; Para reverter, delete a chave PromptForDownloadLocation abaixo (ou mude o
+; valor para 1) e reabra o Chrome.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome]
+"PromptForDownloadLocation"=dword:00000000
