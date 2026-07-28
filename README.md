@@ -1,6 +1,6 @@
 # Extensão Chrome: Zerodox Printer Web (v1.0)
 
-Repositório: https://github.com/tec-zerodox/zerodox-printer-web
+Repositório: https://github.com/zerodoxtech/zerodox-printer-web
 
 ## O que faz
 
