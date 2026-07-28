@@ -19,9 +19,9 @@ texto pesquisável (OCR) e a orientação original do documento.
   converte essa página em um PDF pesquisável usando o mecanismo de
   impressão nativo do próprio Chrome (o mesmo motor usado pelo recurso
   "Salvar como PDF"), e salva o resultado na mesma subpasta de Downloads.
-- Um aplicativo separado, de instalação local (ConfigTray, não incluso
-  nesta extensão), monitora essa subpasta e move os arquivos para a pasta
-  de trabalho do sistema Zerodox no computador da pessoa.
+- Um aplicativo separado, de instalação local (NoPaper-Print-API, não
+  incluso nesta extensão), monitora essa subpasta e move os arquivos para a
+  pasta de trabalho do sistema Zerodox no computador da pessoa.
 
 ## Quais dados a extensão acessa
 
