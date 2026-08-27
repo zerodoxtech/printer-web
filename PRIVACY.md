@@ -82,4 +82,4 @@ texto pesquisável (OCR) e a orientação original do documento.
 
 Dúvidas sobre esta política ou sobre a extensão: entre em contato com a
 equipe Zerodox pelo repositório
-https://github.com/tec-zerodox/zerodox-printer-web.
+https://github.com/zerodoxtech/printer-web.

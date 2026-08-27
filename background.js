@@ -1,4 +1,4 @@
-// Zerodox Printer Web (v1.0)
+// Zerodox Printer Web (v1.1)
 //
 // Resumo do que a extensão faz:
 // - Rastreia, por aba, a última URL cuja resposta foi um PDF (funciona até

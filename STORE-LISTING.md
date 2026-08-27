@@ -41,8 +41,7 @@ atalhos de teclado configuráveis.
 Esta é uma ferramenta de uso interno da Zerodox e de seus clientes. Não
 coleta, envia nem compartilha dados com nenhum servidor -- toda a
 atividade acontece localmente no navegador da pessoa. Veja a política de
-privacidade completa: [link do PRIVACY.md publicado, ex. no GitHub Pages
-ou como raw.githubusercontent.com/.../PRIVACY.md]
+privacidade completa: https://raw.githubusercontent.com/zerodoxtech/printer-web/main/PRIVACY.md
 ```
 
 ## Categoria sugerida
