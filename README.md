@@ -117,10 +117,10 @@ O `scripts/publicar.js` usa a API v2 do Chrome Web Store: gera o zip em
 alguns dias; aprovada, a versão vai sozinha para os clientes.
 
 ```
-node scripts/publicar.js --status    # versão publicada e a em revisão
-node scripts/publicar.js             # gera o zip, sobe e envia para revisão
-node scripts/publicar.js --so-subir  # só sobe (envio pelo painel)
-node scripts/publicar.js --zip       # só gera o zip, sem credencial
+npm run status   # versão publicada e a em revisão
+npm run publish  # gera o zip, sobe e envia para revisão
+npm run upload   # só sobe (envio pelo painel)
+npm run build    # só gera o zip, sem credencial
 ```
 
 Antes de rodar: suba o `version` do `manifest.json` e faça o commit. O
@@ -151,13 +151,13 @@ em duas etapas ligada.
 5. Confira em **Configurações do editor** se o ID do editor é
    `c4b34f40-de1c-40b7-874f-5eab20759148` (padrão do script). Se for outro,
    rode com `CWS_PUBLISHER_ID=<id>`.
-6. Teste com `node scripts/publicar.js --status`.
+6. Teste com `npm run status`.
 
 Se o Google Cloud não deixar criar a chave JSON (política da organização
 `iam.disableServiceAccountKeyCreation`), dá pra usar o `gcloud` no lugar
 dela, depois de um `gcloud auth login` com a conta dona do projeto:
 ```
-CWS_ACCESS_TOKEN=$(gcloud auth print-access-token --impersonate-service-account=<email-da-conta> --scopes=https://www.googleapis.com/auth/chromewebstore) node scripts/publicar.js
+CWS_ACCESS_TOKEN=$(gcloud auth print-access-token --impersonate-service-account=<email-da-conta> --scopes=https://www.googleapis.com/auth/chromewebstore) npm run publish
 ```
 
 Se a visibilidade da extensão (Não listada) for mudada no painel, a API

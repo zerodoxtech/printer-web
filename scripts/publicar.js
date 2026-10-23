@@ -1,9 +1,9 @@
 // Publica a extensão no Chrome Web Store pela API v2 (service account).
 //
-//   node scripts/publicar.js            gera o zip, sobe e envia para revisão
-//   node scripts/publicar.js --so-subir sobe o pacote sem enviar para revisão
-//   node scripts/publicar.js --status   mostra a versão publicada e a em revisão
-//   node scripts/publicar.js --zip      só gera o zip em dist/
+//   npm run publish  (sem opção)     gera o zip, sobe e envia para revisão
+//   npm run upload   (--upload-only) sobe o pacote sem enviar para revisão
+//   npm run status   (--status)      mostra a versão publicada e a em revisão
+//   npm run build    (--zip)         só gera o zip em dist/
 //
 // Configuração (uma vez por máquina) no README, seção "Publicar uma versão nova".
 
@@ -164,8 +164,8 @@ async function main() {
   }
   console.log(`Pacote ${versao} recebido pela loja.`);
 
-  if (args.includes("--so-subir")) {
-    console.log("Não enviado para revisão (--so-subir). Envie pelo painel ou rode sem a opção.");
+  if (args.includes("--upload-only")) {
+    console.log("Não enviado para revisão (--upload-only). Envie pelo painel ou rode npm run publish.");
     return;
   }
 

@@ -1,0 +1,14 @@
+{
+  "name": "zerodox-printer-web",
+  "private": true,
+  "description": "Extensão Chrome Zerodox Printer Web",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/publicar.js --zip",
+    "status": "node scripts/publicar.js --status",
+    "publish": "node scripts/publicar.js",
+    "upload": "node scripts/publicar.js --upload-only"
+  }
+}
