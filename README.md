@@ -91,8 +91,8 @@ aparece em busca, só instala quem tiver o link direto). Basta abrir o link
 da loja em cada máquina e clicar em "Usar no Chrome" — sem Modo do
 desenvolvedor, sem copiar pasta. Atualizações de versão também são
 automáticas: o Chrome verifica e aplica sozinho, em segundo plano; basta
-subir a versão nova no Developer Dashboard com o `version` do
-`manifest.json` incrementado.
+publicar a versão nova com o `version` do `manifest.json` incrementado
+(veja "Publicar uma versão nova").
 
 Veja `PRIVACY.md` (política de privacidade exigida pela loja) e
 `STORE-LISTING.md` (texto pronto pra colar no formulário de publicação)
@@ -109,6 +109,59 @@ antes de subir uma versão nova na loja), instale manualmente:
 5. Teste: abra qualquer PDF numa aba do Chrome e confira se ele aparece na
    pasta `documents` do Zerodox (passa por `Downloads\zerodox` e o
    NoPaper-Print-API move em até ~3 segundos — ele precisa estar rodando).
+
+## Publicar uma versão nova
+
+O `scripts/publicar.js` usa a API v2 do Chrome Web Store: gera o zip em
+`dist/`, sobe e envia para revisão. A revisão do Google leva de horas a
+alguns dias; aprovada, a versão vai sozinha para os clientes.
+
+```
+node scripts/publicar.js --status    # versão publicada e a em revisão
+node scripts/publicar.js             # gera o zip, sobe e envia para revisão
+node scripts/publicar.js --so-subir  # só sobe (envio pelo painel)
+node scripts/publicar.js --zip       # só gera o zip, sem credencial
+```
+
+Antes de rodar: suba o `version` do `manifest.json` e faça o commit. O
+script recusa se a loja já tiver essa versão ou se houver alteração não
+commitada nos arquivos da extensão. Precisa do Node 18 ou mais novo.
+
+### Configuração (uma vez)
+
+Tudo logado como `tecnologia@zerodox.com.br`, que precisa ter verificação
+em duas etapas ligada.
+
+1. No [Google Cloud](https://console.cloud.google.com), crie um projeto
+   (ex: `zerodox-chrome-web-store`) e ative a
+   [Chrome Web Store API](https://console.cloud.google.com/apis/library/chromewebstore.googleapis.com).
+2. Em [Contas de serviço](https://console.cloud.google.com/iam-admin/serviceaccounts),
+   crie uma conta (ex: `publicador-cws`) sem nenhum papel.
+3. Na conta criada: **Chaves → Adicionar chave → Criar nova chave → JSON**.
+   Guarde o arquivo fora do repositório:
+   ```
+   mkdir -p ~/.config/zerodox
+   mv ~/Downloads/<arquivo-baixado>.json ~/.config/zerodox/chrome-web-store.json
+   chmod 600 ~/.config/zerodox/chrome-web-store.json
+   ```
+4. No [painel do desenvolvedor](https://chrome.google.com/webstore/devconsole),
+   com o editor **zerodox** selecionado, abra **Conta**, cole o e-mail da
+   conta de serviço (`...@<projeto>.iam.gserviceaccount.com`) no campo de
+   service account e salve. Cada editor aceita só uma.
+5. Confira em **Configurações do editor** se o ID do editor é
+   `c4b34f40-de1c-40b7-874f-5eab20759148` (padrão do script). Se for outro,
+   rode com `CWS_PUBLISHER_ID=<id>`.
+6. Teste com `node scripts/publicar.js --status`.
+
+Se o Google Cloud não deixar criar a chave JSON (política da organização
+`iam.disableServiceAccountKeyCreation`), dá pra usar o `gcloud` no lugar
+dela, depois de um `gcloud auth login` com a conta dona do projeto:
+```
+CWS_ACCESS_TOKEN=$(gcloud auth print-access-token --impersonate-service-account=<email-da-conta> --scopes=https://www.googleapis.com/auth/chromewebstore) node scripts/publicar.js
+```
+
+Se a visibilidade da extensão (Não listada) for mudada no painel, a API
+só volta a publicar depois de uma publicação manual pelo painel.
 
 ## Evitar o prompt "Salvar como" do Windows/Chrome
 
