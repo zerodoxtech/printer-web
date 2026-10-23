@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Zerodox Printer Web",
-  "version": "1.2",
+  "version": "1.3",
   "description": "Envia o PDF original da aba (intacto, com OCR) ou converte a página HTML em PDF pesquisável e envia para a pasta do Zerodox.",
   "permissions": ["downloads", "webRequest", "storage", "tabs", "debugger", "contextMenus", "notifications", "scripting"],
   "host_permissions": ["<all_urls>"],

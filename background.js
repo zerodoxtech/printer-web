@@ -81,8 +81,24 @@ function garantirPdf(nome) {
 }
 
 // ---- rastreio da última resposta PDF por aba --------------------------------
-// tabId -> { url, nome }
-const ultimoPdfPorAba = new Map();
+// "pdf:<tabId>" -> { url, nome, tipo }. Fica no storage.session porque o
+// Chrome encerra o service worker parado (~30s) e um Map em memória some junto.
+async function lerPdfDaAba(tabId) {
+  try {
+    const chave = "pdf:" + tabId;
+    return (await chrome.storage.session.get(chave))[chave] || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function gravarPdfDaAba(tabId, info) {
+  chrome.storage.session.set({ ["pdf:" + tabId]: info }).catch(() => {});
+}
+
+function esquecerPdfDaAba(tabId) {
+  chrome.storage.session.remove("pdf:" + tabId).catch(() => {});
+}
 
 // downloadId -> nome de arquivo que a extensão exige para este download.
 // Necessário porque o Chrome, ao receber um Content-Disposition do tipo
@@ -106,7 +122,11 @@ chrome.webRequest.onHeadersReceived.addListener(
       const headers = d.responseHeaders || [];
       const ct = headers.find((x) => x.name.toLowerCase() === "content-type");
       const tipo = ct && ct.value ? ct.value.toLowerCase() : "";
-      if (!tipo.includes("pdf")) return;
+      if (!tipo.includes("pdf")) {
+        // A aba foi para outra página: o PDF visto antes não vale mais.
+        if (d.type === "main_frame" && d.tabId >= 0) esquecerPdfDaAba(d.tabId);
+        return;
+      }
       if (!d.url.startsWith("http")) return;
 
       // Nome real: cabeçalho Content-Disposition > parâmetro da URL > caminho.
@@ -114,7 +134,7 @@ chrome.webRequest.onHeadersReceived.addListener(
       const nome =
         nomeDeDisposition(cd && cd.value) || nomeDaUrl(d.url, "documento.pdf");
 
-      if (d.tabId >= 0) ultimoPdfPorAba.set(d.tabId, { url: d.url, nome: garantirPdf(nome) });
+      if (d.tabId >= 0) gravarPdfDaAba(d.tabId, { url: d.url, nome: garantirPdf(nome), tipo: d.type });
 
       getConfig().then((cfg) => {
         if (cfg.automatico && !jaCapturada(d.url)) {
@@ -133,7 +153,7 @@ chrome.webRequest.onHeadersReceived.addListener(
   ["responseHeaders"]
 );
 
-chrome.tabs.onRemoved.addListener((tabId) => ultimoPdfPorAba.delete(tabId));
+chrome.tabs.onRemoved.addListener((tabId) => esquecerPdfDaAba(tabId));
 
 // Modo automático: downloads de PDF feitos pelo usuário também vão pra subpasta.
 chrome.downloads.onDeterminingFilename.addListener((item, sugerir) => {
@@ -484,11 +504,40 @@ function notificar(ok, nome, erro) {
   } catch (e) {}
 }
 
+// Frames da aba que mostram um PDF. Aba de PDF nunca pode cair na conversão
+// HTML: ela imprime o visualizador do Chrome (sai preto), não o documento.
+async function pdfsNosFrames(tabId) {
+  try {
+    const execs = await chrome.scripting.executeScript({
+      target: { tabId, allFrames: true },
+      func: () => (document.contentType === "application/pdf" ? location.href : null),
+    });
+    return execs.filter((r) => r.result).map((r) => ({ frameId: r.frameId, url: r.result }));
+  } catch (e) {
+    return [];
+  }
+}
+
 async function detectarModo(tab) {
-  const info = tab && tab.id != null ? ultimoPdfPorAba.get(tab.id) : null;
-  if (info && info.url) return { modo: "pdf", url: info.url, nome: info.nome };
-  if (/\.pdf($|[?#])/i.test((tab && tab.url) || "")) return { modo: "pdf", url: tab.url, nome: null };
-  if ((tab && tab.url || "").startsWith("http")) return { modo: "html" };
+  if (!tab || tab.id == null) return { modo: null };
+  const salvo = await lerPdfDaAba(tab.id);
+  const frames = await pdfsNosFrames(tab.id);
+
+  if (frames.length) {
+    const escolhido =
+      frames.find((f) => f.frameId === 0) ||
+      frames.find((f) => salvo && f.url === salvo.url) ||
+      frames[0];
+    const nome = salvo && salvo.url === escolhido.url ? salvo.nome : null;
+    return { modo: "pdf", url: escolhido.url, nome };
+  }
+  // PDF que veio por XHR/fetch (ex: visualizador próprio do ERP). Se veio de
+  // um frame e nenhum frame mostra mais PDF, ele já saiu da tela.
+  if (salvo && salvo.tipo !== "main_frame" && salvo.tipo !== "sub_frame") {
+    return { modo: "pdf", url: salvo.url, nome: salvo.nome };
+  }
+  if (/\.pdf($|[?#])/i.test(tab.url || "")) return { modo: "pdf", url: tab.url, nome: null };
+  if ((tab.url || "").startsWith("http")) return { modo: "html" };
   return { modo: null };
 }
 
@@ -580,8 +629,12 @@ chrome.commands.onCommand.addListener(async (comando) => {
 // ---- comunicação com o popup -------------------------------------------------
 chrome.runtime.onMessage.addListener((msg, _sender, responder) => {
   if (msg && msg.type === "obterPdfDaAba") {
-    const info = ultimoPdfPorAba.get(msg.tabId) || null;
-    responder(info ? { url: info.url, nome: info.nome } : { url: null, nome: null });
+    chrome.tabs
+      .get(msg.tabId)
+      .then(detectarModo)
+      .then((info) => responder(info.modo === "pdf" ? { url: info.url, nome: info.nome } : { url: null, nome: null }))
+      .catch(() => responder({ url: null, nome: null }));
+    return true;
   }
   if (msg && msg.type === "baixar") {
     getConfig().then((cfg) => {
