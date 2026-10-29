@@ -1,4 +1,4 @@
-# Extensão Chrome: Zerodox Printer Web (v1.3)
+# Extensão Chrome: Zerodox Printer Web (v1.4)
 
 Repositório: https://github.com/zerodoxtech/printer-web
 
@@ -180,6 +180,19 @@ Duas formas de resolver, por máquina:
    desliga a opção via política do Chrome a nível de máquina e a deixa
    travada/cinza nas configurações. Precisa fechar e abrir o Chrome de novo
    depois.
+
+## PDF que o convênio baixa direto (aberto do computador)
+
+Alguns portais (ex: SAW/Trixti da Unimed) não mostram a guia: baixam o PDF
+direto para `Downloads`, e a pessoa abre o arquivo no Chrome (`file://`).
+Para a extensão enviar esse arquivo, ligue uma vez por máquina, em
+`chrome://extensions` → Zerodox Printer Web → **Detalhes**, a opção
+**Permitir acesso a URLs de arquivo** (vem desligada de quem instala pela
+loja). Sem ela, a extensão avisa e abre essa página sozinha.
+
+O Chrome cancela o download de `file://` feito por extensão
+(`USER_CANCELED` no Windows), então a extensão lê o arquivo numa página
+oculta (`offscreen.html`) e salva os bytes na subpasta de captura.
 
 ## Requisitos
 

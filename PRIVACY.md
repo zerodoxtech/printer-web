@@ -77,6 +77,8 @@ texto pesquisável (OCR) e a orientação original do documento.
 - **`contextMenus`, `notifications`, `tabs`, `commands`**: usados para o
   menu de botão direito, atalhos de teclado e avisos de sucesso/erro ao
   enviar um documento.
+- **`offscreen`**: usado só para ler o PDF que a pessoa abriu do próprio
+  computador e mandou enviar, e salvá-lo na subpasta de captura.
 
 ## Contato
 

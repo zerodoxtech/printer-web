@@ -27,7 +27,7 @@ function arquivosDoPacote() {
     .readdirSync(path.join(RAIZ, "icons"))
     .filter((f) => f.endsWith(".png"))
     .map((f) => `icons/${f}`);
-  return ["background.js", "manifest.json", "options.html", "options.js", "popup.html", "popup.js", ...icones];
+  return ["background.js", "manifest.json", "offscreen.html", "offscreen.js", "options.html", "options.js", "popup.html", "popup.js", ...icones];
 }
 
 function versaoDoManifest() {

@@ -101,6 +101,10 @@ pasta local para importação no sistema Zerodox.
 - **`notifications`**: mostra avisos de sucesso/erro ao enviar um
   documento, já que em alguns fluxos (menu de botão direito) não há popup
   visível pra mostrar o resultado.
+- **`offscreen`**: lê o PDF que a pessoa abriu do próprio computador
+  (`file://`, ex: guia que o portal do convênio baixa direto) para salvá-lo
+  na subpasta de captura; o service worker da extensão não consegue ler
+  arquivos locais sozinho. Só lê o arquivo da aba que a pessoa mandou enviar.
 
 **Uso remoto de código**: Não. Todo o código roda localmente, incluído no
 pacote da extensão; nenhum script é baixado ou executado de fora.

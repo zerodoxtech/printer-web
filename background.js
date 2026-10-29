@@ -377,8 +377,7 @@ async function converterComPossivelFrameset(tabId, titulo, cfg, landscape, urlAb
   } catch (e) {}
 
   if (!urlFrame) {
-    await converterHtmlEmPdf(tabId, titulo, cfg, landscape);
-    return;
+    return converterHtmlEmPdf(tabId, titulo, cfg, landscape);
   }
 
   const novaAba = await chrome.tabs.create({ url: urlFrame, active: false });
@@ -398,11 +397,7 @@ async function converterComPossivelFrameset(tabId, titulo, cfg, landscape, urlAb
       aindaTemFrameset = !!(chk && chk.result);
     } catch (e) {}
 
-    if (aindaTemFrameset) {
-      await converterHtmlEmPdf(tabId, titulo, cfg, landscape);
-    } else {
-      await converterHtmlEmPdf(novaAba.id, titulo, cfg, landscape);
-    }
+    return await converterHtmlEmPdf(aindaTemFrameset ? tabId : novaAba.id, titulo, cfg, landscape);
   } finally {
     try {
       await chrome.tabs.remove(novaAba.id);
@@ -468,12 +463,15 @@ async function converterHtmlEmPdf(tabId, titulo, cfg, landscape) {
       (titulo || "pagina").replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 120) || "pagina";
 
     const caminho = `${cfg.subpasta}/${nome}.pdf`;
-    await new Promise((resolve) => {
+    return await new Promise((resolve) => {
       chrome.downloads.download(
         { url: "data:application/pdf;base64," + resultado.data, filename: caminho, conflictAction: "uniquify" },
         (id) => {
-          if (id !== undefined) nomesForcados.set(id, caminho);
-          resolve();
+          if (id !== undefined) {
+            nomesForcados.set(id, caminho);
+            acompanharEnvio(id, `${nome}.pdf`);
+          }
+          resolve(id);
         }
       );
     });
@@ -502,6 +500,62 @@ function notificar(ok, nome, erro) {
         : erro || "Não foi possível enviar este documento.",
     });
   } catch (e) {}
+}
+
+// O download pode ser criado e falhar logo depois (ex: arquivo local sem
+// permissão), então "enviado" só sai quando ele termina de verdade.
+// "dl:<id>" -> nome também no storage.session, caso o service worker reinicie.
+const enviosPendentes = new Map();
+
+function acompanharEnvio(id, nome) {
+  enviosPendentes.set(id, nome);
+  chrome.storage.session.set({ ["dl:" + id]: nome }).catch(() => {});
+}
+
+chrome.downloads.onChanged.addListener(async (d) => {
+  const estado = d.state && d.state.current;
+  if (estado !== "complete" && estado !== "interrupted") return;
+  const chave = "dl:" + d.id;
+  const nome =
+    enviosPendentes.get(d.id) || (await chrome.storage.session.get(chave).catch(() => ({})))[chave];
+  if (!nome) return;
+  enviosPendentes.delete(d.id);
+  chrome.storage.session.remove(chave).catch(() => {});
+
+  const erro = d.error && d.error.current;
+  if (estado === "complete") notificar(true, nome);
+  else if (erro !== "USER_CANCELED") notificar(false, nome, `Não foi possível salvar "${nome}" (${erro || "erro desconhecido"}).`);
+});
+
+// PDF aberto do computador (file://) só pode ser copiado com "Permitir acesso
+// a URLs de arquivo" ligado nos detalhes da extensão, que vem desligado da loja.
+const MSG_SEM_ACESSO_ARQUIVO =
+  'Para enviar um PDF aberto do computador, ligue "Permitir acesso a URLs de arquivo" na página da extensão que abriu e envie de novo.';
+
+async function liberouArquivoLocal(url) {
+  if (!/^file:/i.test(url || "") || (await chrome.extension.isAllowedFileSchemeAccess())) return true;
+  notificar(false, null, MSG_SEM_ACESSO_ARQUIVO);
+  chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` }).catch(() => {});
+  return false;
+}
+
+// O Chrome cancela o download de file:// feito por extensão (USER_CANCELED no
+// Windows), então o PDF local é lido numa página offscreen e baixado pelos bytes.
+async function urlParaBaixar(url) {
+  if (!/^file:/i.test(url || "")) return url;
+  try {
+    await chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: ["BLOBS"],
+      justification: "Ler o PDF aberto do computador para enviar ao Zerodox",
+    });
+  } catch (e) {} // já estava aberta
+  const r = await chrome.runtime.sendMessage({ type: "lerArquivoLocal", url });
+  chrome.offscreen.closeDocument().catch(() => {});
+  if (!r || !r.dataUrl) {
+    throw new Error(`Não foi possível ler o arquivo do computador${r && r.erro ? ` (${r.erro})` : ""}.`);
+  }
+  return r.dataUrl;
 }
 
 // Frames da aba que mostram um PDF. Aba de PDF nunca pode cair na conversão
@@ -548,16 +602,19 @@ async function enviarDaAba(tab, landscape) {
     const info = await detectarModo(tab);
 
     if (info.modo === "pdf") {
+      if (!(await liberouArquivoLocal(info.url))) return;
       const nomeFinal = info.nome ? garantirPdf(info.nome) : nomeDaUrl(info.url);
       const caminho = `${cfg.subpasta}/${nomeFinal}`;
-      chrome.downloads.download({ url: info.url, filename: caminho, conflictAction: "uniquify" }, (id) => {
-        if (id !== undefined) nomesForcados.set(id, caminho);
-        notificar(id !== undefined, nomeFinal, chrome.runtime.lastError?.message);
+      const url = await urlParaBaixar(info.url);
+      chrome.downloads.download({ url, filename: caminho, conflictAction: "uniquify" }, (id) => {
+        if (id === undefined) return notificar(false, nomeFinal, chrome.runtime.lastError?.message);
+        nomesForcados.set(id, caminho);
+        acompanharEnvio(id, nomeFinal);
       });
     } else if (info.modo === "html") {
       const nomeAproximado = (tab.title || "pagina").trim() + ".pdf";
-      await converterComPossivelFrameset(tab.id, tab.title, cfg, landscape, tab.url);
-      notificar(true, nomeAproximado);
+      const id = await converterComPossivelFrameset(tab.id, tab.title, cfg, landscape, tab.url);
+      if (id === undefined) notificar(false, nomeAproximado);
     } else {
       notificar(false, null, "Esta aba não tem um documento que possa ser enviado.");
     }
@@ -637,17 +694,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, responder) => {
     return true;
   }
   if (msg && msg.type === "baixar") {
-    getConfig().then((cfg) => {
+    getConfig().then(async (cfg) => {
+      if (!(await liberouArquivoLocal(msg.url))) return responder({ ok: false, erro: MSG_SEM_ACESSO_ARQUIVO });
       const nomeFinal = msg.nome ? garantirPdf(msg.nome) : nomeDaUrl(msg.url);
       const caminho = `${cfg.subpasta}/${nomeFinal}`;
+      let url;
+      try {
+        url = await urlParaBaixar(msg.url);
+      } catch (e) {
+        return responder({ ok: false, erro: e.message });
+      }
       chrome.downloads.download(
         {
-          url: msg.url,
+          url,
           filename: caminho,
           conflictAction: "uniquify",
         },
         (id) => {
-          if (id !== undefined) nomesForcados.set(id, caminho);
+          if (id !== undefined) {
+            nomesForcados.set(id, caminho);
+            acompanharEnvio(id, nomeFinal);
+          }
           responder({ ok: id !== undefined, erro: chrome.runtime.lastError?.message });
         }
       );
